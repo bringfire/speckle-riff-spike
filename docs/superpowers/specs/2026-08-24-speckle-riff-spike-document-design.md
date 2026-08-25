@@ -125,6 +125,8 @@ review_complete is true
 AND every node status is accepted
 AND exactly one node contains payload.agentic_change_candidate
 AND the designated authorizing packet decision is accept
+AND source_version, before, and the complete RookActionBinding still match the live pre-action state
+AND the authorization has not already been reserved or consumed
 AND the attempted action exactly matches the reviewed action candidate
 ```
 
@@ -150,6 +152,19 @@ The authorizing node's existing `ReviewPacket.payload` contains a spike-owned ca
     "before": 2.4,
     "proposed_after": 2.9,
     "unit": "m",
+    "rook_action_binding": {
+      "schema_version": "1.0",
+      "binding_id": "canopy-spacing-control",
+      "source_canvas_id": "civic-canopy-canvas",
+      "grasshopper_component_instance_id": "11111111-2222-3333-4444-555555555555",
+      "control_type": "GH_NumberSlider",
+      "input_or_parameter_id": "value",
+      "target_application_id": "canopy-bay-07",
+      "parameter_key": "canopy_bay_spacing",
+      "allowed_rook_operation": "gh_compare_and_set_value",
+      "expected_pre_action_value": 2.4,
+      "binding_provenance_version": "canopy-binding-v1"
+    },
     "comparison": {
       "mode": "absolute_tolerance",
       "tolerance": 0.001
@@ -160,7 +175,19 @@ The authorizing node's existing `ReviewPacket.payload` contains a spike-owned ca
 
 Exactly one node in the authoritative Review Matrix may contain `payload.agentic_change_candidate`. That unique node is the authorizing node; the executor does not accept a caller-selected override. Zero candidates or multiple candidates are preflight refusals.
 
-"Exactly matches" means that the target application ID, parameter key, proposed value, declared unit, comparison mode, and tolerance supplied to execution are copied unchanged from that candidate. The POC performs no implicit unit conversion. Numeric verification converts the authorized value, observed value, and tolerance from their JSON textual representations to decimal values and passes only when `abs(observed - authorized) <= tolerance`. The tolerance must be finite, nonnegative, explicitly reviewed, and expressed in the same declared unit. A zero tolerance expresses exact decimal equality.
+"Exactly matches" means that `source_version`, target application ID, parameter key, `before`, proposed value, declared unit, the complete `rook_action_binding`, comparison mode, and tolerance supplied to execution are copied unchanged from that candidate. The POC performs no implicit unit conversion. Numeric verification converts the authorized value, observed value, and tolerance from their JSON textual representations to decimal values and passes only when `abs(observed - authorized) <= tolerance`. The tolerance must be finite, nonnegative, explicitly reviewed, and expressed in the same declared unit. A zero tolerance expresses exact decimal equality.
+
+`RookActionBinding` is the spike-owned, transport-neutral seam between a Speckle action target and one Grasshopper control. The stable `grasshopper_component_instance_id` must come from Grasshopper instance identity, never a label, position, list index, nickname, or role. For this POC, `source_canvas_id` is the canonical string form of the producer-observed Grasshopper `GH_Document.DocumentID`; a reopened definition with a different document ID requires a new snapshot and review. The binding is restricted to `control_type: GH_NumberSlider`, `input_or_parameter_id: value`, and the strict operation literal `gh_compare_and_set_value`.
+
+`gh_compare_and_set_value` is a required POC Rook capability, not a claim about the currently inspected Rook runtime. In one Rhino/Grasshopper UI-thread operation it must require the reviewed document ID and component `InstanceGuid`, find exactly one `GH_NumberSlider`, compare its current decimal value with the reviewed `before` value, and set only its value to `proposed_after` when the comparison succeeds. Its request contains exactly the document ID, component instance GUID, literal parameter `value`, expected value, proposed value, and authorization key; it accepts no nickname, minimum, maximum, additional edit arrays, or alternate control type. It returns those identities and the observed before/after values in a receipt. This mutation-bound comparison closes the time-of-check/time-of-use window that an ordinary `gh_snapshot` followed by `gh_edit.set_values` cannot close. Gate 2 cannot begin until the installed Rook runtime supplies and verifies this narrow operation.
+
+The reviewed binding is schema-valid only when its source canvas equals the Review Matrix `canvas_id`; its target application ID and parameter key exactly equal the candidate fields; its expected pre-action value exactly equals `before`; and its provenance version is the reviewed immutable binding revision. A missing, duplicate, malformed, or cross-field-mismatched reviewed binding is a preflight refusal. Immediately before invoking Rook, the executor re-reads version A and verifies the reviewed source-version identity and target. After permit creation and invocation, the mutation-bound Rook operation validates the live document, control identity, type, parameter, and exact decimal equality with `before` before writing. A live missing, stale, or ambiguous target or `before` mismatch performs no mutation but is a failed authorized attempt: it creates `AgenticChangeRecord.outcome: failed` and cannot be retried. No tolerance or implicit conversion is used for this freshness check.
+
+### One-use authorization and retry policy
+
+The spike derives an `authorization_key` as SHA-256 over compact, key-sorted UTF-8 JSON containing exactly `review_matrix_sha256`, `authorizing_packet_id`, and `candidate_field_path`. After every sidecar, source-version, and binding check passes—and immediately before the Rook invocation—the executor atomically and exclusively persists a permitted `PreflightResult` containing that key. Creating that immutable permit consumes the authorization for one possible attempt. Concurrent creation or any existing permit for the same key is a refusal.
+
+Because a new Review Matrix export changes `exported_at` and therefore may change the sidecar hash, the exclusive permit location is derived from the canonical tuple `(snapshot_id, authorizing_packet_id, candidate_field_path)`, not from `authorization_key`. The permit stores the key and matrix hash. This makes the uniqueness check and creation one atomic filesystem operation across concurrent re-exports with different hashes; there is no separate lookup-then-create window. A refusal before permit creation may be retried only while the same reviewed artifact still matches the live state. A stale source version, stale `before`, stale binding, any failure after permit creation, or any uncertain invocation outcome requires a new Chirp snapshot and new human review; the old authorization is never retried.
 
 The outcome record cites the exact reviewed value using:
 
@@ -169,6 +196,7 @@ snapshot_id
 authorizing_node_id
 authorizing_packet_id
 candidate_field_path: /payload/agentic_change_candidate
+authorization_key
 ```
 
 The packet's ordinary `parameters[]` may also expose the proposed value and source for human readability, but it does not replace the exact target-bearing payload candidate.
@@ -252,6 +280,7 @@ AgenticChangeRecord
 │   ├── authorizing_node_id
 │   ├── authorizing_packet_id
 │   ├── candidate_field_path
+│   ├── authorization_key
 │   ├── review_matrix_path
 │   ├── review_matrix_sha256
 │   ├── review_matrix_byte_length
@@ -263,7 +292,19 @@ AgenticChangeRecord
 │   ├── before
 │   ├── after
 │   ├── unit
-│   └── comparison
+│   ├── comparison
+│   └── rook_action_binding
+│       ├── schema_version
+│       ├── binding_id
+│       ├── source_canvas_id
+│       ├── grasshopper_component_instance_id
+│       ├── control_type
+│       ├── input_or_parameter_id
+│       ├── target_application_id
+│       ├── parameter_key
+│       ├── allowed_rook_operation
+│       ├── expected_pre_action_value
+│       └── binding_provenance_version
 ├── execution
 │   ├── actor
 │   ├── tool
@@ -281,7 +322,8 @@ AgenticChangeRecord
 Constraints:
 
 - Exactly one allowlisted parameter change appears in a record.
-- The copied change, declared unit, and comparison rule must exactly match the reviewed payload candidate.
+- The source version, pre-action value, selected binding, copied change, declared unit, and comparison rule must exactly match the reviewed payload candidate.
+- The authorization key and complete selected binding appear unchanged in the executor request and outcome record.
 - `result_version` is present whenever a published version was observed, including when later verification fails.
 - `outcome: verified` requires every deterministic check to pass.
 - `outcome: failed` may include or omit version B depending on where failure occurred.
@@ -298,12 +340,14 @@ The required POC acceptance sequence is:
 3. Chirp's reviewed packet contains the exact action candidate.
 4. The Riff Review Matrix is complete and every node is accepted.
 5. The raw matrix sidecar is written, read back, and cryptographically verified.
-6. Rook changes exactly one allowlisted architectural parameter.
-7. A distinct version B is published.
-8. Version B is re-read rather than trusted from the publish response.
-9. The target application ID resolves as intended in B.
-10. The observed value satisfies the human-authorized deterministic comparison rule in the declared unit.
-11. One immutable `AgenticChangeRecord` binds A, authorization, action, B, and verification.
+6. Version A and the reviewed `RookActionBinding` are revalidated immediately before action; the live `before` value is enforced atomically by the Rook mutation.
+7. One authorization key is atomically reserved and cannot be replayed.
+8. Rook atomically compares and changes exactly one allowlisted slider value through the resolved binding.
+9. A distinct version B is published.
+10. Version B is re-read rather than trusted from the publish response.
+11. The target application ID resolves as intended in B.
+12. The observed value satisfies the human-authorized deterministic comparison rule in the declared unit.
+13. One immutable `AgenticChangeRecord` binds A, authorization, binding, action, B, and verification.
 
 Required negative demonstrations are:
 
@@ -311,12 +355,16 @@ Required negative demonstrations are:
 - correction or rejection blocks execution;
 - zero or multiple action candidates block execution;
 - an action-candidate mismatch blocks execution;
+- a source-version mismatch or invalid reviewed binding refuses before permit creation;
+- a live document, target, type, parameter, or `before` mismatch performs no mutation but produces a failed post-invocation record;
+- a consumed authorization key or a second permit for the same reviewed candidate blocks execution;
 - a missing, incomplete, or modified Review Matrix blocks execution;
 - unstable or missing target identity fails verification;
 - a published B with the wrong value produces `outcome: failed` while retaining its version reference;
 - network, service, or tool failure never becomes inferred success;
 - a failed authorization or preflight produces no action and no `AgenticChangeRecord` while retaining refusal evidence;
-- an authorized attempt that fails during execution, publication, or verification produces a safe immutable outcome record.
+- an authorized attempt that fails during execution, publication, or verification produces a safe immutable outcome record;
+- an uncertain or failed attempt is never retried from the same reviewed snapshot.
 
 ## 10. Evidence Discipline
 
@@ -401,7 +449,7 @@ Pin upstream repositories and revisions, establish the source ledger, record con
 
 ### Gate 1 — Canonical integration contracts
 
-Define evidence references, action-candidate convention, identity invariants, authorization policy, sidecar binding, and immutable outcome record independently of transport.
+Define evidence references, action-candidate convention, `RookActionBinding`, live pre-action invariants, one-use authorization policy, sidecar binding, and immutable outcome record independently of transport.
 
 ### Gate 2 — Self-sufficient released-Speckle POC
 
@@ -527,6 +575,9 @@ The documentation work is acceptable only when:
 - the POC authority and professional-liability boundaries are explicit;
 - the current Riff contract is described accurately and remains unchanged;
 - the authorizing node is selected uniquely and cannot be overridden by the executor;
+- the reviewed source version, `before`, and complete `RookActionBinding` are copied; source and binding are freshly revalidated and the live value is compared atomically with mutation;
+- invalid reviewed bindings refuse preflight, while live identity/value mismatches fail safely after invocation; neither path falls back to labels, positions, or indexes;
+- one authorization can permit at most one possible attempt, and retry after failure or uncertainty requires a new snapshot and review;
 - preflight refusal is distinguished from a failed authorized attempt;
 - numeric and unit comparison rules are explicit and deterministic;
 - the complete POC runtime, not only research repositories, is required to be pinned;

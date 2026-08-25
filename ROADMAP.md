@@ -44,7 +44,7 @@ Collected on 2026-08-25 from the source repositories and the executing host. The
 
 ```text
 > git rev-parse HEAD
-42397bc9ac889f4a89cb60e1d7445268ca4308b5
+record the executing package commit in the external Gate-0 run ledger
 
 > git -C ../Riff rev-parse HEAD
 21dd4296b33263d26b821c7d43c6fb8394475c4c
@@ -71,9 +71,9 @@ Host operating-system observation collected on 2026-08-25: `Microsoft Windows NT
 
 | Dependency | Source or installed version | Commit / build | Capture method | Capture date | Status and limitation |
 | --- | --- | --- | --- | --- | --- |
-| speckle-riff-spike | source checkout | `42397bc9ac889f4a89cb60e1d7445268ca4308b5` | `git rev-parse HEAD` | 2026-08-25 | source observed; no POC execution recorded |
+| speckle-riff-spike | checked-in package | recorded externally for each approved run; not self-pinned here | `git rev-parse HEAD` at Gate-0 execution | 2026-08-25 | this Roadmap and `docs/big-truck-agentic-delta.md` are the package sources; no POC execution recorded |
 | Riff and its chirp package | source checkout | `21dd4296b33263d26b821c7d43c6fb8394475c4c` | `git -C ../Riff rev-parse HEAD` | 2026-08-25 | source observed; tree is dirty with untracked `GH/`, `Presentation/`, `Screenshots/`, `Video/`, and `traces/` |
-| Rook source | source checkout | `a2be88dcd8918f6c87af25ca995c10dbe8044c88` | `git -C ../Rook rev-parse HEAD` and status | 2026-08-25 | source observed; `main` is ahead 8 and behind 164 of `origin/main` |
+| Rook source | source checkout | `a2be88dcd8918f6c87af25ca995c10dbe8044c88` | `git -C ../Rook rev-parse HEAD` and status | 2026-08-25 | source observed; `main` is ahead 8 and behind 164 of `origin/main`; inspected `gh_snapshot`/`gh_edit.set_values` cannot provide the required stable-GUID atomic compare-and-set, so `gh_compare_and_set_value` remains a Gate-1/2 prerequisite |
 | installed Rook build | `not_recorded` | `not_recorded` | installed-build capture not yet performed | 2026-08-25 | installed source mismatch is unknown; a source commit is not an installed plugin build |
 | Rhino | `not_recorded` | `not_recorded` | installed-runtime capture not yet performed | 2026-08-25 | runtime actually used by the demonstration remains unpinned |
 | Grasshopper | `not_recorded` | `not_recorded` | installed-runtime capture not yet performed | 2026-08-25 | runtime actually used by the demonstration remains unpinned |
@@ -95,7 +95,7 @@ Gate 0 cannot complete and Gate 2 cannot begin while any runtime actually used b
 
 ### Dependencies
 
-Approved Delta at commit `42397bc9ac889f4a89cb60e1d7445268ca4308b5`, the approved design, access to the listed research source pins, and every installed runtime intended for the POC.
+The checked-in [Big Truck Agentic Delta](docs/big-truck-agentic-delta.md), the approved design, an externally recorded approved package commit or release tag, access to the listed research source pins, and every installed runtime intended for the POC. The package cannot pin its own final commit without becoming stale.
 
 ### Work
 
@@ -137,8 +137,9 @@ Define transport-neutral, schema-valid fixtures and validation rules for:
 
 - `SpeckleVersionRef` — origin, project, model, immutable version identity;
 - `SpeckleEvidenceRef` — version reference plus bounded application-ID, relation, and field evidence location;
-- `agentic_change_candidate` — source version, target application ID, parameter key, `before`, `proposed_after`, unit, comparison mode, and tolerance;
-- `PreflightResult` — permit/refuse decision, deterministic refusal reasons, and evidence references;
+- `RookActionBinding` — Grasshopper document ID as source canvas, stable slider instance GUID, literal `value` parameter, Speckle target and key, strict `gh_compare_and_set_value` operation, expected pre-action value, and binding provenance version;
+- `agentic_change_candidate` — source version, target application ID, parameter key, `before`, `proposed_after`, complete reviewed `RookActionBinding`, unit, comparison mode, and tolerance;
+- `PreflightResult` — permit/refuse decision, deterministic refusal reasons, evidence references, and the one-use authorization key on a permitted result;
 - `ReviewMatrixArtifactRef` — sidecar path, SHA-256, byte length, media type, and Review Matrix schema version;
 - `AgenticChangeRecord` — immutable post-attempt lineage and verified or failed outcome;
 - deterministic numeric comparison — decimal input, declared unit, comparison mode, finite nonnegative tolerance, and pass/fail result.
@@ -151,8 +152,20 @@ AND review_complete == true
 AND every node status == accepted
 AND exactly one node contains /payload/agentic_change_candidate
 AND that node's decision.action == accept
-AND target_application_id, parameter_key, proposed_after, unit, comparison mode absolute_tolerance, and tolerance are copied unchanged into the executor request
+AND source_version, target_application_id, parameter_key, before, proposed_after, the complete RookActionBinding, unit, comparison mode absolute_tolerance, and tolerance are copied unchanged into the executor request
+AND version A still matches source_version
+AND the binding names one current GH_NumberSlider in the reviewed GH_Document
+AND Rook atomically compares the live value with before and writes proposed_after
+AND the authorization key has not been reserved or consumed
 ```
+
+The candidate contains the complete reviewed binding. Its `source_canvas_id` must equal the Review Matrix `canvas_id` and the canonical producer-observed `GH_Document.DocumentID`; its target, parameter key, and expected pre-action value must exactly equal the candidate fields; and its stable Grasshopper instance ID must come from actual component-instance identity rather than a label, position, list index, nickname, or role. The POC binding is restricted to `control_type: GH_NumberSlider`, `input_or_parameter_id: value`, and `allowed_rook_operation: gh_compare_and_set_value`.
+
+`gh_compare_and_set_value` is a required POC Rook addition, not an observed current capability. One UI-thread operation must accept exactly the reviewed document ID, slider `InstanceGuid`, literal parameter `value`, expected value, proposed value, and authorization key; find one `GH_NumberSlider`; compare its current decimal value with `before`; and set only its value when equal. It rejects any document, type, ID, parameter, or expected-value mismatch and accepts no nickname, range, extra edit arrays, or alternate control type. Its receipt returns the validated identities and observed before/after values. This closes the race and identity gap in the current `gh_snapshot` plus `gh_edit.set_values` surface. Gate 2 stops until the installed Rook runtime implements and verifies this contract.
+
+Immediately before invocation, re-read version A and refuse unless the reviewed source version and Speckle target remain the active basis. The live Grasshopper identity and `before` comparison occur inside the mutation-bound Rook operation, not as a separate snapshot check.
+
+Derive `authorization_key` as SHA-256 over compact, key-sorted UTF-8 JSON containing exactly `review_matrix_sha256`, `authorizing_packet_id`, and `candidate_field_path`. After all preflight checks pass, atomically exclusive-create the permitted `PreflightResult` immediately before Rook invocation. The exclusive permit path is derived from `(snapshot_id, authorizing_packet_id, candidate_field_path)`, while the file stores `authorization_key` and matrix hash. This one filesystem create is the uniqueness check across concurrent re-exports with different hashes; there is no prior lookup race. Permit creation consumes one possible attempt.
 
 Verify numeric and unit equality only when:
 
@@ -164,19 +177,19 @@ AND finite, nonnegative reviewed tolerance
 AND abs(decimal(observed) - decimal(authorized)) <= decimal(tolerance)
 ```
 
-Refuse zero or multiple candidates, pending/corrected/rejected nodes, altered sidecar bytes, target mismatch, unit mismatch, comparison mismatch, and unauthorized value mismatch. These are preflight refusals and create no `AgenticChangeRecord`.
+Refuse zero or multiple candidates, pending/corrected/rejected nodes, altered sidecar bytes, source-version mismatch, target or cross-field mismatch, missing/duplicate/malformed reviewed binding, unit mismatch, comparison mismatch, unauthorized proposed value, or consumed authorization before permit creation. These are preflight refusals and create no `AgenticChangeRecord`. After permit creation and executor invocation, a live document, slider GUID, control type, parameter, ambiguity, or `before` mismatch performs no mutation but produces `AgenticChangeRecord.outcome: failed` and cannot be retried.
 
 ### Outputs
 
-Versioned transport-neutral definitions, schema-valid positive and refusal fixtures, a byte-preserving Review Matrix sidecar procedure, and an executor-request fixture copied directly from the unique candidate.
+Versioned transport-neutral definitions, schema-valid positive and refusal fixtures, a byte-preserving Review Matrix sidecar procedure, binding-resolution fixtures, an immutable one-use permit fixture, and an executor-request fixture copied directly from the unique candidate.
 
 ### Verification
 
-Validate each fixture against its contract. Demonstrate acceptance only for one accepted candidate and demonstrate refusal for each listed refusal case. Compare the executor fixture field-for-field with the authorizing payload; calculate deterministic comparisons from decimal textual values without conversion.
+Validate each fixture against its contract. Demonstrate preflight acceptance only for one accepted candidate and demonstrate refusal for every listed pre-permit case. Compare the executor fixture field-for-field with the authorizing payload; test successful compare-and-set plus live missing, stale, wrong-type, and ambiguous resolution as post-invocation failed outcomes with no mutation; test concurrent same-key and different-hash/same-candidate permit creation; and calculate deterministic comparisons from decimal textual values without conversion.
 
 ### Exit Criteria
 
-All seven contracts and fixtures validate; acceptance has exactly one authorizing node; all refusal cases prevent invocation; and sidecar bytes, target, unit, comparison, tolerance, and proposed value cannot be changed between review and executor request.
+All contracts and fixtures validate; acceptance has exactly one authorizing node and one reviewed binding; every preflight refusal prevents invocation; every mutation-bound mismatch performs no write and creates a failed post-invocation record; one reviewed authorization permits at most one possible attempt; and source version, `before`, sidecar bytes, binding, target, unit, comparison, tolerance, and proposed value cannot change between review and executor request.
 
 ### Claims Newly Permitted
 
@@ -184,7 +197,7 @@ The spike has a transport-neutral authorization contract and preflight policy. T
 
 ### Stop/Go
 
-Stop for a schema-invalid fixture, ambiguous candidate, mismatch, altered artifact, nonfinite or negative tolerance, or any implicit unit conversion. Go to Gate 2 only after every positive and refusal case passes.
+Stop for a schema-invalid fixture, ambiguous candidate, invalid reviewed binding, mismatch, altered artifact, consumed authorization, nonfinite or negative tolerance, or any implicit unit conversion. Treat live identity or value mismatch from the invoked compare-and-set as an expected failed-outcome path, not a preflight refusal. Go to Gate 2 only after every preflight and mutation-bound case passes and the installed Rook runtime implements the reviewed-GUID, mutation-bound `gh_compare_and_set_value` contract.
 
 ## Gate 2 — Self-Sufficient Released-Speckle POC
 
@@ -204,20 +217,24 @@ Execute in this exact order:
 6. Complete every human review.
 7. Export one successful Review Matrix response as raw bytes.
 8. Write, hash, read back, and verify the sidecar.
-9. Run the complete preflight authorization policy.
-10. Invoke one allowlisted Rook parameter change only after preflight passes.
-11. Publish version B when execution permits.
-12. Re-read B and verify version difference, target identity, and the reviewed numeric rule.
-13. Write exactly one immutable AgenticChangeRecord after the executor was invoked.
+9. Copy the full reviewed candidate, including `source_version`, `before`, and `RookActionBinding`, into the executor request.
+10. Re-read version A; verify the source and Speckle target, and prepare the exact reviewed compare-and-set request.
+11. Atomically create the one-use permitted `PreflightResult`; never reuse it after creation.
+12. Invoke one allowlisted `gh_compare_and_set_value` Rook change; it atomically verifies document ID, stable slider GUID, literal `value`, and live `before` before writing only `proposed_after`.
+13. Publish version B when execution permits.
+14. Re-read B and verify version difference, target identity, and the reviewed numeric rule.
+15. Write exactly one immutable AgenticChangeRecord after the executor was invoked, including the authorization key and selected binding.
 
 ### Outputs
 
-Retained A and B version references when B is published; bounded evidence references; the raw Review Matrix sidecar and its hash/length record; one exact executor request; preflight output; action-attempt evidence; deterministic verification evidence; and exactly one immutable post-attempt outcome record.
+Retained A and B version references when B is published; bounded evidence references; the raw Review Matrix sidecar and its hash/length record; one exact executor request; binding-resolution evidence; the immutable one-use permitted `PreflightResult`; action-attempt evidence; deterministic verification evidence; and exactly one immutable post-attempt outcome record.
 
 ### Verification
 
 - A and B are distinct immutable Speckle versions when publication succeeds.
 - The target application ID resolves as intended in B.
+- The source version and selected `RookActionBinding` were revalidated, and the Rook receipt proves the live pre-action value was compared in the same operation that performed the mutation.
+- The authorization key was created once and cannot be reused for a concurrent or later attempt.
 - The parameter and unit match the reviewed candidate.
 - Verification applies the reviewed deterministic tolerance.
 - The matrix artifact hash and byte length revalidate.
@@ -227,7 +244,7 @@ Retained A and B version references when B is published; bounded evidence refere
 
 ### Exit Criteria
 
-The retained evidence proves the exact reviewed, uniquely authorized request was attempted only after preflight; the independent B retrieval satisfies the reviewed rule and stable target identity; and the one post-attempt record is `verified`. If the authorized executor is invoked and any later check fails, retain the safe `failed` record and available B reference rather than infer success.
+The retained evidence proves the exact reviewed, uniquely authorized request was attempted once, only after live pre-action and binding checks; the independent B retrieval satisfies the reviewed rule and stable target identity; and the one post-attempt record is `verified`. If the authorization permit was created but invocation is uncertain, or if the authorized executor is invoked and any later check fails, never retry that reviewed snapshot. Retain the permit and, after invocation, the safe `failed` record and available B reference rather than infer success.
 
 ### Claims Newly Permitted
 
@@ -235,7 +252,7 @@ The retained evidence proves the exact reviewed, uniquely authorized request was
 
 ### Stop/Go
 
-Stop before invocation for any Gate-1 refusal. Stop the success path after a failed publication or verification and produce the failed post-attempt record where the executor was invoked. Go to Gate 3 only after a verified Gate-2 result; Gate 2 does not require private Speckle or unreleased Big Truck access.
+Stop before invocation for any Gate-1 refusal. A refusal before permit creation may be retried only while the same reviewed artifact still matches the live state; stale source, binding, or `before` data requires a new snapshot and review. Any failure or uncertainty after permit creation also requires a new snapshot and review. Stop the success path after a failed publication or verification and produce the failed post-attempt record where the executor was invoked. Go to Gate 3 only after a verified Gate-2 result; Gate 2 does not require private Speckle or unreleased Big Truck access.
 
 ## Gate 3 — Local Big Truck Parity Experiment
 
@@ -344,10 +361,13 @@ Stop on no optional engagement path, incomplete question framing, or requested p
 | stable source identity | 0 | dated source/runtime ledger and pin outputs | each research SHA and used runtime is captured; contradictions use precedence | stop on unknown pin, unexplained dirtiness, or runtime mismatch | `BT-OBS-001`–`BT-OBS-007` |
 | complete accepted review | 1, 2 | raw Review Matrix sidecar | schema `1.0`, `review_complete`, and every node accepted | preflight refusal; no action and no `AgenticChangeRecord` | `POC-PROOF-001` |
 | unique action candidate | 1, 2 | matrix fixture and authorizing-node record | exactly one `/payload/agentic_change_candidate` with `decision.action == accept` | preflight refusal for zero or multiple candidates | `POC-PROOF-001` |
-| exact executor request | 1, 2 | candidate and executor-request fixture | target, parameter, proposed value, unit, `absolute_tolerance`, and tolerance copied unchanged | preflight refusal | `POC-PROOF-001` |
+| exact executor request | 1, 2 | candidate and executor-request fixture | source version, `before`, full binding, target, parameter, proposed value, unit, `absolute_tolerance`, and tolerance copied unchanged | preflight refusal | `POC-PROOF-001` |
+| deterministic Rook binding | 1, 2 | `RookActionBinding` and compare-and-set receipt | reviewed document ID and stable slider `InstanceGuid` resolve to exactly one `GH_NumberSlider.value` target | invalid reviewed binding refuses preflight; live mismatch after invocation writes nothing and creates failed record | `POC-PROOF-001` |
+| fresh pre-action state | 1, 2 | version-A re-read and compare-and-set receipt | source version and target match; Rook atomically requires live value to equal reviewed `before` before writing | stale source refuses preflight; live-value mismatch after invocation writes nothing and creates failed record | `POC-PROOF-001` |
+| one-use authorization | 1, 2 | immutable permitted `PreflightResult` | one exclusive tuple-derived permit succeeds across same-key and different-hash concurrent exports | refusal; uncertainty after permit requires new review | `POC-PROOF-001` |
 | sidecar byte integrity | 1, 2 | raw UTF-8 sidecar, SHA-256, byte length | write, hash, read back, and revalidate identical bytes | preflight refusal for altered bytes | `POC-PROOF-001` |
-| preflight refusal | 1 | negative fixtures and `PreflightResult` | all listed invalid states refuse before executor invocation | preserve refusal evidence; no `AgenticChangeRecord` | `POC-PROOF-001` |
-| execution failure record | 2 | immutable post-attempt record | executor invocation followed by failure yields `outcome: failed` | retain safe failed record and B when present | `POC-PROOF-001` |
+| preflight refusal | 1 | negative fixtures and `PreflightResult` | all listed pre-permit invalid states refuse before executor invocation | preserve refusal evidence; no `AgenticChangeRecord` | `POC-PROOF-001` |
+| execution failure record | 2 | immutable post-attempt record | any invoked compare-and-set identity/value failure or later failure yields `outcome: failed` | no retry; retain safe failed record and B when present | `POC-PROOF-001` |
 | version-B existence | 2 | version B reference and publication evidence | B exists as a distinct immutable version when publication succeeds | failed outcome when invocation occurred and publication fails | `POC-PROOF-001` |
 | independent B retrieval | 2 | retrieval transcript and bounded evidence | B is re-read rather than trusted from publication response | failed outcome after invocation | `POC-PROOF-001` |
 | numeric and unit verification | 1, 2 | decimal comparison record | same key/unit, no conversion, finite nonnegative tolerance, and observed value within tolerance | refusal before action or failed outcome after action | `POC-PROOF-001` |
@@ -364,6 +384,8 @@ Stop on no optional engagement path, incomplete question framing, or requested p
 | released connector versus repository-main confusion | 0, 2 | capture installed released connector independently; never equate it with a source commit |
 | installed/source runtime mismatch | 0, 2 | stop until installed build and source relationships are recorded |
 | producer-dependent application ID stability | 2, 3 | use explicit civic-canopy IDs and verify A-to-B continuity without universalizing it (`BT-OBS-003`) |
+| stale or ambiguous Speckle-to-Grasshopper binding | 1, 2 | review the complete binding; require the narrow Rook operation to resolve the document and stable slider GUID atomically; stop unless exactly one target matches |
+| authorization replay or uncertain retry | 1, 2 | derive the exclusive permit path from snapshot/packet/candidate; store the hash-dependent key inside; require a new snapshot after uncertainty or failure |
 | unit or tolerance mismatch | 1, 2 | exact copy and decimal/no-conversion preflight and verification rules |
 | Riff process-local state loss before sidecar capture | 1, 2 | capture raw successful Review Matrix bytes, hash, read back, and verify before action |
 | small-model measurement noise | 3 | run real canopy first; use only useful deterministic scale variants after parity |
@@ -395,7 +417,9 @@ Remains in the spike:
 | Condition | Required decision |
 | --- | --- |
 | Gate 0 has `not_recorded` runtime gaps, unexplained dirtiness, or reproducibility-relevant installed/source mismatch | stop; complete or explain the ledger before Gate 1 or Gate 2 begins |
-| Gate 1 authorization or schema checks fail | stop before executor invocation; retain refusal evidence and create no `AgenticChangeRecord` |
+| Gate 1 pre-permit authorization, reviewed-binding, replay, or schema checks fail | stop before executor invocation; retain refusal evidence and create no `AgenticChangeRecord` |
+| Invoked compare-and-set rejects live document, identity, type, parameter, ambiguity, or `before` | perform no mutation; retain one immutable failed outcome and require a new snapshot/review |
+| A permit exists for the authorization or reviewed candidate | do not invoke again; require a new snapshot and human review |
 | Gate 2 fails after executor invocation | stop the verified-success path; retain one immutable `failed` outcome and B when present |
 | Gate 3 has public-dependency or generated-schema blockers | stop and record the blocker; do not recreate unavailable private schemas |
 | Gate 4 lacks one focused Gate-3 question | stop; do not build an emulator |
@@ -411,3 +435,5 @@ Remains in the spike:
 | 2026-08-24 | Outcome record is post-attempt | Preflight refusals create no `AgenticChangeRecord`; an authorized executor invocation has exactly one immutable verified or failed outcome record. |
 | 2026-08-24 | Big Truck is post-POC research | Gates 3 and 4 are stoppable research; Gate 5 is optional and Gate 2 completes independently with released capabilities. |
 | 2026-08-25 | Runtime baseline blocked | Riff has untracked files and several installed runtime rows are `not_recorded`; Gate 0 cannot complete and Gate 2 cannot begin. |
+| 2026-08-25 | Live state and binding are authority preconditions | Execution copies the reviewed source version, `before`, and `RookActionBinding`; source state is revalidated before invocation, while Rook resolves identity and compares the live value atomically with mutation. |
+| 2026-08-25 | Authorization is single-use | An atomic permit consumes one possible attempt; replay, failure, or uncertainty requires a new snapshot and review. |

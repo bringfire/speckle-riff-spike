@@ -35,13 +35,15 @@ Speckle version A
 → Riff presentation and per-node human review
 → all nodes accepted and exactly one authorizing candidate
 → raw Review Matrix response written, hashed, read back, and verified
-→ external agent coordinates one allowlisted Rook action
+→ source version, live before-state, and one reviewed RookActionBinding revalidated
+→ one-use authorization reserved
+→ external agent coordinates one allowlisted Rook action through that binding
 → Speckle version B is published
 → B is independently re-read and verified
 → one immutable AgenticChangeRecord binds the lineage
 ```
 
-The executor cannot select or alter the candidate. It copies the reviewed target application ID, parameter key, proposed value, unit, comparison mode, and tolerance exactly. Numeric verification evaluates the re-read value using that reviewed unit, comparison mode, and tolerance; a unit mismatch is refused or recorded as a failed outcome, never implicitly converted. The POC permits one allowlisted architectural parameter change, such as canopy bay spacing; it excludes structural member sizing, autonomous optimization, and unrestricted Grasshopper modification.
+The executor cannot select or alter the candidate. It copies the reviewed `source_version`, target application ID, parameter key, `before`, proposed value, complete `RookActionBinding`, unit, comparison mode, and tolerance exactly. Immediately before invoking Rook it re-reads version A. The sole POC mutation is a narrow `gh_compare_and_set_value` operation that, on the Grasshopper UI thread, validates the reviewed document ID and stable slider `InstanceGuid`, compares the current value with `before`, and changes only the slider value when equal. This is a required Rook addition, not a capability claimed for the currently inspected runtime. Numeric verification evaluates the re-read result using the reviewed unit, comparison mode, and tolerance; a unit mismatch is refused or recorded as a failed outcome, never implicitly converted. The POC permits one allowlisted architectural parameter change, such as canopy bay spacing; it excludes structural member sizing, autonomous optimization, and unrestricted Grasshopper modification.
 
 ## What the Released-Speckle POC Proves
 
@@ -54,10 +56,15 @@ Authorization and failure semantics are deliberate:
 - A failed verification can retain result_version B when B was published.
 - Review Matrix review_complete is necessary but insufficient; every node must be accepted.
 - Exactly one node may contain payload.agentic_change_candidate.
+- A missing, malformed, duplicate, or cross-field-mismatched reviewed binding is a preflight refusal.
+- A stale Speckle source version is a preflight refusal.
+- A live document, slider GUID, control type, parameter, or `before` mismatch discovered by the invoked compare-and-set performs no mutation but is an immutable failed authorized attempt.
+- A one-use authorization permit is atomically reserved immediately before the Rook call; a consumed permit is never replayed.
+- Failure or uncertainty after permit creation requires a new reasoning snapshot and human review.
 - Riff annotations, including change_candidate, are advisory and non-executable.
 - JSON sidecars are POC packaging, not the proposed permanent Big Truck representation.
 
-The sidecar is the raw UTF-8 Review Matrix response: it is written unchanged, SHA-256 hashed with byte length, read back, and verified before execution. The spike retains refusal evidence for failed preflight but creates no immutable outcome record until an authorized executor has been invoked.
+The sidecar is the raw UTF-8 Review Matrix response: it is written unchanged, SHA-256 hashed with byte length, read back, and verified before execution. The spike retains refusal evidence for failed preflight but creates no immutable outcome record until an authorized executor has been invoked. A permitted `PreflightResult` acts as the one-use authorization receipt: its hash-dependent `authorization_key` binds the sidecar, authorizing packet, and candidate path, while its atomically exclusive path is derived from the snapshot, authorizing packet, and candidate path. Concurrent re-exports therefore contend for the same permit even when `exported_at` produces different matrix hashes.
 
 ## Big Truck Evidence Ledger
 
@@ -111,13 +118,15 @@ source evidence
 → verified or failed outcome
 ```
 
-It binds source version A, grounded evidence, the exact hashed Review Matrix sidecar, the uniquely authorizing Riff packet and candidate field, the one Rook attempt, result version B when published, and re-read verification. Publishing B alone never means success. Once the authorized executor is invoked, execution, publication, or verification failure is recorded immutably with `outcome: failed`; safe failure contains no credentials, private exceptions, prompts, or stack traces.
+It binds source version A, grounded evidence, the exact hashed Review Matrix sidecar, the uniquely authorizing Riff packet and candidate field, the one-use authorization key, the reviewed `RookActionBinding`, the one Rook attempt, result version B when published, and re-read verification. Publishing B alone never means success. Once the authorized executor is invoked, execution, publication, or verification failure is recorded immutably with `outcome: failed`; safe failure contains no credentials, private exceptions, prompts, or stack traces.
 
 ## Identity Guarantees and Limits
 
 The spike keeps `canvas_id`, `snapshot_id`, `run_id`, `node_id`/component ID, `packet_id`, Speckle application ID, and Speckle version ID separate. The civic-canopy producer supplies explicit application IDs and Gate 2 verifies their continuity from A to B. That is a POC invariant, not a claim that Big Truck or Speckle universally guarantees cross-version identity.
 
 `BT-OBS-003` supports application_id as an addressing key in the pinned handoff. It does not support an identity guarantee across producers, versions, imports, remaps, or future product revisions.
+
+The reviewed `RookActionBinding` is a separate POC invariant. It records the producer-observed Grasshopper `GH_Document.DocumentID` as source `canvas_id`, stable slider `InstanceGuid`, literal `value` parameter, Speckle target application ID and parameter key, `gh_compare_and_set_value`, expected pre-action value, and binding provenance version. The mutation itself must resolve that stable identity to exactly one `GH_NumberSlider` and compare the live value before writing. Current Rook snapshots expose only routing short IDs and component-type GUIDs, so they are not accepted as durable identity proof; inability to perform the stable-ID compare-and-set stops the POC rather than permitting a label-, position-, or index-based guess.
 
 ## Responsibility and Authority Boundaries
 

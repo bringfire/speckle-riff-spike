@@ -10,12 +10,14 @@
 
 **Spec:** `docs/superpowers/specs/2026-08-24-speckle-riff-spike-document-design.md`
 
+> **Post-execution review amendment (2026-08-25):** The delivered contracts must also bind the reviewed source version and live `before` state, carry one complete `RookActionBinding`, require a narrow mutation-bound `gh_compare_and_set_value` Rook operation, prevent replay with an atomically persisted tuple-keyed one-use permit, and avoid a self-referential package commit pin. The separately authorized README alignment remains a distinct commit. These corrections supersede narrower executor-field lists below where they conflict.
+
 ## Global Constraints
 
 - Work from the `speckle-riff-spike` repository root.
 - Read the complete specification before editing either target document.
-- Create only `docs/big-truck-agentic-delta.md` and `ROADMAP.md` during execution.
-- Do not edit `README.md`, the specification, Riff, Chirp, Rook, upstream Speckle clones, or generated POC artifacts.
+- The original execution creates only `docs/big-truck-agentic-delta.md` and `ROADMAP.md`; approved post-execution contract corrections may amend this plan and its specification for consistency.
+- Do not edit Riff, Chirp, Rook, upstream Speckle clones, or generated POC artifacts. README alignment is allowed only as the separately authorized small follow-up commit.
 - Do not implement a harness, connector, emulator, fixture generator, sidecar writer, or POC action.
 - Use only publicly inspectable sources and pinned repository revisions; never copy private schemas, credentials, licensed binaries, or proprietary examples.
 - Every material Big Truck statement must use exactly one state: `observed_upstream`, `proven_locally`, `poc_hypothesis`, or `requires_speckle_validation`.
@@ -26,6 +28,8 @@
 - Gates 0–2 are the required POC. Gates 3–4 are independently stoppable post-POC research. Gate 5 is optional Speckle validation.
 - Riff owns reasoning, review, and decision semantics; the spike owns durable capture, cryptographic binding, execution lineage, and verification artifacts.
 - `review_complete` never means authorized. POC execution requires every node accepted and exactly one reviewed `payload.agentic_change_candidate`.
+- Execution must copy `source_version`, `before`, and one complete reviewed `RookActionBinding`; source state is freshly revalidated and the live slider value is compared atomically with mutation. Missing, stale, or ambiguous resolution refuses.
+- An atomically persisted permitted `PreflightResult` consumes one possible attempt. Replay, failure, or uncertainty after permit creation requires a new snapshot and review.
 - A failed preflight produces no action and no `AgenticChangeRecord`. Failure after the authorized executor is invoked produces an immutable failed outcome record.
 - Numeric verification uses the explicit reviewed unit and absolute tolerance with no implicit conversion.
 - Karamba evidence and all agent reasoning remain advisory; human authorization is not structural approval or professional sign-off.
@@ -562,6 +566,7 @@ Require transport-neutral definitions and schema-valid examples for:
 ```text
 SpeckleVersionRef
 SpeckleEvidenceRef
+RookActionBinding
 agentic_change_candidate
 PreflightResult
 ReviewMatrixArtifactRef
@@ -577,8 +582,13 @@ AND review_complete == true
 AND every node status == accepted
 AND exactly one node contains /payload/agentic_change_candidate
 AND that node's decision.action == accept
-AND target_application_id, parameter_key, proposed_after, unit, comparison mode absolute_tolerance, and tolerance are copied unchanged into the executor request
+AND source_version, target_application_id, parameter_key, before, proposed_after, the complete RookActionBinding, unit, comparison mode absolute_tolerance, and tolerance are copied unchanged into the executor request
+AND a fresh source read matches source_version
+AND Rook atomically resolves the reviewed document/slider identity, compares before, and writes proposed_after
+AND the authorization has not already been reserved or consumed
 ```
+
+Define `RookActionBinding` with producer-observed `GH_Document.DocumentID` as source `canvas_id`, stable `GH_NumberSlider` instance GUID, literal `value` parameter, Speckle target application ID, parameter key, strict `gh_compare_and_set_value` operation, expected pre-action value, and binding provenance version. The required Rook operation is an explicit POC addition: one UI-thread operation resolves the reviewed GUID, compares the current decimal value with `before`, and sets only `proposed_after`; it accepts no nickname, range, additional arrays, or alternate control type. Define the one-use `authorization_key` from the matrix hash, authorizing packet, and candidate path. Atomically create the permitted `PreflightResult` at a path derived from snapshot/packet/candidate so concurrent re-exports with different hashes contend for the same file.
 
 - [ ] **Step 10: Write the deterministic numeric and unit rule**
 
@@ -592,7 +602,7 @@ AND abs(decimal(observed) - decimal(authorized)) <= decimal(tolerance)
 
 - [ ] **Step 11: Write the Gate 1 refusal cases and exit criteria**
 
-Require refusal for zero or multiple candidates, pending/corrected/rejected nodes, altered sidecar bytes, target mismatch, unit mismatch, comparison mismatch, and unauthorized value mismatch. These are preflight refusals and create no `AgenticChangeRecord`.
+Require preflight refusal for zero or multiple candidates, pending/corrected/rejected nodes, altered sidecar bytes, source-version mismatch, missing/duplicate/malformed reviewed binding, target or cross-field mismatch, unit mismatch, comparison mismatch, unauthorized proposed value, or consumed authorization. These occur before permit creation and create no `AgenticChangeRecord`. After permit creation and invocation, a live document, slider GUID, type, parameter, ambiguity, or `before` mismatch performs no mutation but creates `AgenticChangeRecord.outcome: failed`. Any failure or uncertainty after permit creation requires a new snapshot and review.
 
 - [ ] **Step 12: Write Gate 2 dependencies and work sequence**
 
@@ -609,17 +619,22 @@ Gate 2 work must follow this exact order:
 6. Complete every human review.
 7. Export one successful Review Matrix response as raw bytes.
 8. Write, hash, read back, and verify the sidecar.
-9. Run the complete preflight authorization policy.
-10. Invoke one allowlisted Rook parameter change only after preflight passes.
-11. Publish version B when execution permits.
-12. Re-read B and verify version difference, target identity, and the reviewed numeric rule.
-13. Write exactly one immutable AgenticChangeRecord after the executor was invoked.
+9. Copy source_version, before, and the complete reviewed RookActionBinding into the executor request.
+10. Re-read version A and prepare the exact reviewed compare-and-set request.
+11. Atomically persist the one-use permitted PreflightResult.
+12. Invoke one allowlisted gh_compare_and_set_value operation that verifies document ID, stable slider GUID, literal value parameter, and live before inside the mutation.
+13. Publish version B when execution permits.
+14. Re-read B and verify version difference, target identity, and the reviewed numeric rule.
+15. Write exactly one immutable AgenticChangeRecord after the executor was invoked, including the authorization key and binding.
 ```
 
 - [ ] **Step 13: Write Gate 2 verification and exit criteria**
 
 ```text
 - A and B are distinct immutable Speckle versions when publication succeeds.
+- Source version and exactly one RookActionBinding were revalidated; the Rook receipt proves the live before-state was compared atomically with mutation.
+- One authorization permit exists and cannot be replayed.
+- A compare-and-set identity or value mismatch writes nothing, creates outcome: failed, and cannot be retried.
 - The target application ID resolves as intended in B.
 - The parameter and unit match the reviewed candidate.
 - Verification applies the reviewed deterministic tolerance.
@@ -678,6 +693,9 @@ stable source identity
 complete accepted review
 unique action candidate
 exact executor request
+deterministic Rook binding
+fresh pre-action state
+one-use authorization
 sidecar byte integrity
 preflight refusal
 execution failure record
@@ -699,6 +717,8 @@ unavailable generated schema dependency
 released connector versus repository-main confusion
 installed/source runtime mismatch
 producer-dependent application ID stability
+stale or ambiguous Speckle-to-Grasshopper binding
+authorization replay or uncertain retry
 unit or tolerance mismatch
 Riff process-local state loss before sidecar capture
 small-model measurement noise
