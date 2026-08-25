@@ -21,14 +21,14 @@ Grasshopper civic canopy — version A
 → the main agent performs only the authorized Grasshopper change
 → Grasshopper and Karamba recompute
 → Speckle records version B
-→ Riff preserves the evidence → reasoning → decision → action → version lineage
+→ the spike preserves the evidence → reasoning → decision → action → version lineage
 ```
 
 Karamba results remain advisory. Agents do not replace simulation, deterministic calculation, professional engineering judgment, or licensed approval.
 
 ## Big Truck focus
 
-The temporary proof may use Speckle's currently available connector as disposable demonstration transport. The enduring contracts target Big Truck's version-scoped artifact model, stable application identity, typed properties, topology, and selective machine-readable evidence.
+The temporary proof may use Speckle's currently available connector as disposable demonstration transport. The enduring contracts target Big Truck's version-scoped artifact model, producer-supplied application identity whose continuity is tested rather than assumed, typed properties, topology, and selective machine-readable evidence.
 
 This repository will document precisely what Big Truck enables for agentic AEC work beyond the temporary proof. It will not claim native Big Truck interoperability until verified against Speckle's actual implementation.
 
