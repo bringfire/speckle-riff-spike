@@ -36,6 +36,8 @@ The POC uses released public Speckle capabilities, one bounded architectural par
 | 4 | Conditional post-POC research | optional | One unresolved Gate-3 protocol question is answered |
 | 5 | External validation | optional | Speckle validates or corrects the claimed native seam |
 
+Gates 0–2 are the required POC. Gates 3–5 are post-POC and independently stoppable; Gate 5 is optional. Gate 2 completes independently of Gates 3–5.
+
 ## Reproducible Runtime Baseline
 
 Collected on 2026-08-25 from the source repositories and the executing host. These observations are a baseline ledger, not evidence that an installed runtime is reproducible.
@@ -304,7 +306,7 @@ Stop when Gate 3 does not provide a focused unresolved question, when the scope 
 
 ### Dependencies
 
-An optional Speckle engagement path, retained local evidence, and a bounded written request that identifies the exact claims and protocol questions to validate.
+Completed Gate 2; an optional Speckle engagement path, retained local evidence, and a bounded written request that identifies the exact claims and protocol questions to validate.
 
 ### Work
 
