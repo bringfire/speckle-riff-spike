@@ -18,7 +18,7 @@ Rook                 → one allowlisted Grasshopper action
 Spike                → durable capture, lineage, verification, and comparison
 ```
 
-The delta under study is not machine readability appearing from nothing. Current Speckle is machine-readable. The hypothesis is that purpose-separated, bounded, columnar, version-scoped consumption with explicit topology can make equivalent agent evidence questions more inspectable and less geometry-dependent.
+The delta under study is not machine readability appearing from nothing. Current Speckle is machine-readable. `BT-HYP-001` is the hypothesis that purpose-separated, bounded, columnar, version-scoped consumption with explicit topology can make equivalent agent evidence questions more inspectable and less geometry-dependent.
 
 ## Independent Project Disclaimer
 
@@ -41,7 +41,7 @@ Speckle version A
 → one immutable AgenticChangeRecord binds the lineage
 ```
 
-The executor cannot select or alter the candidate. It copies the reviewed target application ID, parameter key, proposed value, unit, comparison mode, and tolerance exactly. The POC permits one allowlisted architectural parameter change, such as canopy bay spacing; it excludes structural member sizing, autonomous optimization, and unrestricted Grasshopper modification.
+The executor cannot select or alter the candidate. It copies the reviewed target application ID, parameter key, proposed value, unit, comparison mode, and tolerance exactly. Numeric verification evaluates the re-read value using that reviewed unit, comparison mode, and tolerance; a unit mismatch is refused or recorded as a failed outcome, never implicitly converted. The POC permits one allowlisted architectural parameter change, such as canopy bay spacing; it excludes structural member sizing, autonomous optimization, and unrestricted Grasshopper modification.
 
 ## What the Released-Speckle POC Proves
 
@@ -89,14 +89,14 @@ The ledger is deliberately conservative. Source precedence is executable code an
 
 | Capability | Released-path baseline | Observed Big Truck direction | Agentic consequence | Current evidence state | Proof required |
 | --- | --- | --- | --- | --- | --- |
-| version-scoped evidence | Current Speckle object API or SDK retrieves the evidence for a version. | Handoff describes version-named artifact files and a version-artifacts route. | A proposal can bind evidence questions to one source version. | observed_upstream | Gate 3 reads the pinned artifact shape; Gate 5 validates native service compatibility. |
-| object addressing and producer identity | A POC producer supplies explicit application IDs and verifies A-to-B continuity. | EAV contains an object_index to application_id dictionary. | The action target can be named without using geometry as identity. | observed_upstream | Gate 2 tests the producer invariant; it must not be generalized. |
-| typed properties | Object API or SDK exposes current object properties. | EAV separates typed scalar values, paths, and type-level deduplication. | Agents can ask a bounded property question with an explicit field path. | observed_upstream | Gate 3 answers predefined questions with semantic parity. |
-| topology and relationships | Relationships are obtained through the released path as needed. | Envelope rows describe typed relations and node catalogs across namespaces. | Agents can ground a question in explicit relations rather than inferred nesting alone. | observed_upstream | Gate 3 verifies relation interpretation for the canopy questions. |
-| geometry-independent reads | Released path is instrumented for the same evidence questions. | Geometry, EAV, and envelope are separately represented. | Some questions may omit geometry materialization. | poc_hypothesis | Compare semantic parity, bytes, and materialization for equivalent questions. |
-| columnar and bounded consumption | Baseline instrumentation records object/API retrieval. | The handoff describes Parquet files and independently useful table sets. | Consumers may read only the evidence categories required by a question. | poc_hypothesis | Gate 3 measures bytes and normalized evidence after correctness passes. |
-| artifact reuse between agents | Each agent can receive spike-owned evidence references. | Version artifact discovery is described in the handoff. | A shared bounded reference could prevent repeated extraction. | requires_speckle_validation | Validate discovery, schema, and access semantics with Speckle. |
-| cross-version comparison when identity is stable | POC verifies producer-supplied application ID continuity. | The bundle exposes application_id but not a universal continuity contract. | Stable IDs may support an exact A-to-B comparison. | poc_hypothesis | Gate 2 proves this only for the civic-canopy producer. |
+| version-scoped evidence | Current Speckle object API or SDK retrieves the evidence for a version. | `BT-OBS-001` records version-named bundle files; `BT-OBS-005` records the handoff's version-artifacts route and its unvalidated server availability. | A proposal can bind evidence questions to one source version. | observed_upstream | Gate 3 reads the pinned artifact shape; Gate 5 validates native service compatibility. |
+| object addressing and producer identity | A POC producer supplies explicit application IDs and verifies A-to-B continuity. | `BT-OBS-003` records the EAV object_index-to-application_id dictionary. | The action target can be named without using geometry as identity. | observed_upstream | Gate 2 tests the producer invariant; it must not be generalized. |
+| typed properties | Object API or SDK exposes current object properties. | The [pinned handoff](https://github.com/specklesystems/speckle-sharp/blob/f87d39cff9f54aff6c30b634780c834ba070ff4e/notes/handoff-packfileloader2-envelope.md) describes EAV paths, typed scalar columns, and type-scoped rows; `BT-OBS-001` records its 12-file bundle context. | Agents can ask a bounded property question with an explicit field path. | observed_upstream | Gate 3 answers predefined questions with semantic parity. |
+| topology and relationships | Relationships are obtained through the released path as needed. | `BT-OBS-002` records typed envelope relations and node namespaces. | Agents can ground a question in explicit relations rather than inferred nesting alone. | observed_upstream | Gate 3 verifies relation interpretation for the canopy questions. |
+| geometry-independent reads | Released path is instrumented for the same evidence questions. | `BT-OBS-004` records separate geometry, EAV, and envelope artifacts. | `BT-HYP-001`: some equivalent questions may omit geometry materialization. | poc_hypothesis | Compare semantic parity, bytes, and materialization for equivalent questions. |
+| columnar and bounded consumption | Baseline instrumentation records object/API retrieval. | `BT-OBS-001` records Parquet files; the [pinned handoff](https://github.com/specklesystems/speckle-sharp/blob/f87d39cff9f54aff6c30b634780c834ba070ff4e/notes/handoff-packfileloader2-envelope.md) describes independently useful table sets. | `BT-HYP-001`: consumers may read only the evidence categories a question needs. | poc_hypothesis | Gate 3 measures bytes and normalized evidence after correctness passes. |
+| artifact reuse between agents | Each agent can receive spike-owned evidence references. | `BT-OBS-005` records a handoff-described artifact route but not a proven discovery contract. | A shared bounded reference could prevent repeated extraction. | requires_speckle_validation | Validate discovery, schema, and access semantics with Speckle. |
+| cross-version comparison when identity is stable | POC verifies producer-supplied application ID continuity. | `BT-OBS-003` records application_id addressing, not a universal continuity contract. | `BT-HYP-001`: stable IDs may support an exact A-to-B comparison. | poc_hypothesis | Gate 2 proves this only for the civic-canopy producer. |
 
 ## Canonical Evidence and Action Lineage
 
