@@ -1,0 +1,13 @@
+# Upstream Speckle reference clones remain independent repositories.
+/speckle-docs/
+/speckle-server/
+/speckle-sharp-connectors-big-truck/
+/speckle-sharp-sdk-big-truck/
+/specklepy/
+
+# Local environments, credentials, and generated test artifacts.
+/.env
+/.venv/
+/artifacts/
+/tmp/
+
