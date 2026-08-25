@@ -35,15 +35,15 @@ Speckle version A
 → Riff presentation and per-node human review
 → all nodes accepted and exactly one authorizing candidate
 → raw Review Matrix response written, hashed, read back, and verified
-→ source version, live before-state, and one reviewed RookActionBinding revalidated
+→ source version and one reviewed RookActionBinding statically validated
 → one-use authorization reserved
-→ external agent coordinates one allowlisted Rook action through that binding
+→ Rook atomically validates the full canvas fingerprint, target, and before-state while acting
 → Speckle version B is published
 → B is independently re-read and verified
 → one immutable AgenticChangeRecord binds the lineage
 ```
 
-The executor cannot select or alter the candidate. It copies the reviewed `source_version`, target application ID, parameter key, `before`, proposed value, complete `RookActionBinding`, unit, comparison mode, and tolerance exactly. Immediately before invoking Rook it re-reads version A. The sole POC mutation is a narrow `gh_compare_and_set_value` operation that, on the Grasshopper UI thread, validates the reviewed document ID and stable slider `InstanceGuid`, compares the current value with `before`, and changes only the slider value when equal. This is a required Rook addition, not a capability claimed for the currently inspected runtime. Numeric verification evaluates the re-read result using the reviewed unit, comparison mode, and tolerance; a unit mismatch is refused or recorded as a failed outcome, never implicitly converted. The POC permits one allowlisted architectural parameter change, such as canopy bay spacing; it excludes structural member sizing, autonomous optimization, and unrestricted Grasshopper modification.
+The executor cannot select or alter the candidate. It copies the reviewed `source_version`, target application ID, parameter key, `source_canvas_state_fingerprint`, `before`, proposed value, complete `RookActionBinding`, unit, comparison mode, and tolerance exactly. Static authorization occurs before permit creation: it re-reads version A and validates the binding contract. The sole POC mutation is a narrow `gh_compare_and_set_value` operation that, on the Grasshopper UI thread, recomputes the complete canvas fingerprint, validates the reviewed document ID and stable slider `InstanceGuid`, compares the current value with `before`, and changes only the slider value when every live guard matches. This is a required Rook addition, not a capability claimed for the currently inspected runtime. A live guard mismatch is a failed authorized attempt with no mutation, not a preflight refusal. Numeric verification evaluates the re-read result using the reviewed unit, comparison mode, and tolerance; a unit mismatch is refused or recorded as a failed outcome, never implicitly converted. The POC permits one allowlisted architectural parameter change, such as canopy bay spacing; it excludes structural member sizing, autonomous optimization, and unrestricted Grasshopper modification.
 
 ## What the Released-Speckle POC Proves
 
@@ -58,7 +58,7 @@ Authorization and failure semantics are deliberate:
 - Exactly one node may contain payload.agentic_change_candidate.
 - A missing, malformed, duplicate, or cross-field-mismatched reviewed binding is a preflight refusal.
 - A stale Speckle source version is a preflight refusal.
-- A live document, slider GUID, control type, parameter, or `before` mismatch discovered by the invoked compare-and-set performs no mutation but is an immutable failed authorized attempt.
+- A live document ID, whole-document fingerprint, slider GUID, control type, parameter, or `before` mismatch discovered by the invoked compare-and-set performs no mutation but is an immutable failed authorized attempt.
 - A one-use authorization permit is atomically reserved immediately before the Rook call; a consumed permit is never replayed.
 - Failure or uncertainty after permit creation requires a new reasoning snapshot and human review.
 - Riff annotations, including change_candidate, are advisory and non-executable.
@@ -126,7 +126,7 @@ The spike keeps `canvas_id`, `snapshot_id`, `run_id`, `node_id`/component ID, `p
 
 `BT-OBS-003` supports application_id as an addressing key in the pinned handoff. It does not support an identity guarantee across producers, versions, imports, remaps, or future product revisions.
 
-The reviewed `RookActionBinding` is a separate POC invariant. It records the producer-observed Grasshopper `GH_Document.DocumentID` as source `canvas_id`, stable slider `InstanceGuid`, literal `value` parameter, Speckle target application ID and parameter key, `gh_compare_and_set_value`, expected pre-action value, and binding provenance version. The mutation itself must resolve that stable identity to exactly one `GH_NumberSlider` and compare the live value before writing. Current Rook snapshots expose only routing short IDs and component-type GUIDs, so they are not accepted as durable identity proof; inability to perform the stable-ID compare-and-set stops the POC rather than permitting a label-, position-, or index-based guess.
+The reviewed `RookActionBinding` is a separate POC invariant. It records the producer-observed Grasshopper `GH_Document.DocumentID` as source `canvas_id`, a `rook_canonical_ghx_sha256_v1` fingerprint of the complete active document, stable slider `InstanceGuid`, literal `value` parameter, Speckle target application ID and parameter key, `gh_compare_and_set_value`, expected pre-action value, and binding provenance version. The mutation itself must recompute the whole-document fingerprint, resolve that stable identity to exactly one `GH_NumberSlider`, and compare the live value before writing. Current Rook snapshots expose only partial canvas state, routing short IDs, and component-type GUIDs, so they are not accepted as durable source-state or identity proof; inability to capture and enforce the fingerprint or stable-ID compare-and-set stops the POC rather than permitting a stale or label-, position-, or index-based guess.
 
 ## Responsibility and Authority Boundaries
 

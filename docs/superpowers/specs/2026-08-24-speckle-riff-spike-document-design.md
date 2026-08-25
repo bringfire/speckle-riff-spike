@@ -118,17 +118,30 @@ No Riff schema or code change is required.
 
 Riff defines `review_complete` as no node remaining pending. It does not mean that the reasoning was accepted. A matrix containing rejected or correction-requested nodes can be complete.
 
-The POC execution policy is therefore:
+The POC execution policy has two explicit phases. Static authorization is evaluated before permit creation:
 
 ```text
 review_complete is true
 AND every node status is accepted
 AND exactly one node contains payload.agentic_change_candidate
 AND the designated authorizing packet decision is accept
-AND source_version, before, and the complete RookActionBinding still match the live pre-action state
+AND source_version is re-read and still names the reviewed immutable Speckle state
+AND the complete RookActionBinding is schema-valid and cross-field consistent
 AND the authorization has not already been reserved or consumed
 AND the attempted action exactly matches the reviewed action candidate
 ```
+
+Only after these checks may the spike create the one-use permit. Live execution guards are then evaluated inside the invoked Rook mutation:
+
+```text
+active GH_Document.DocumentID matches source_canvas_id
+AND the recomputed whole-document fingerprint matches source_canvas_state_fingerprint
+AND the stable InstanceGuid resolves to exactly one GH_NumberSlider
+AND the parameter is the literal value
+AND the live value exactly equals before
+```
+
+A static check failure is a preflight refusal with no `AgenticChangeRecord`. A live execution-guard failure occurs after permit creation and invocation, performs no mutation, creates `AgenticChangeRecord.outcome: failed`, and cannot be retried.
 
 Any `pending`, `correction_requested`, or `rejected` node blocks execution. Correction is terminal for its immutable packet; revision requires a new snapshot and new review records.
 
@@ -155,7 +168,11 @@ The authorizing node's existing `ReviewPacket.payload` contains a spike-owned ca
     "rook_action_binding": {
       "schema_version": "1.0",
       "binding_id": "canopy-spacing-control",
-      "source_canvas_id": "civic-canopy-canvas",
+      "source_canvas_id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+      "source_canvas_state_fingerprint": {
+        "algorithm": "rook_canonical_ghx_sha256_v1",
+        "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      },
       "grasshopper_component_instance_id": "11111111-2222-3333-4444-555555555555",
       "control_type": "GH_NumberSlider",
       "input_or_parameter_id": "value",
@@ -179,9 +196,11 @@ Exactly one node in the authoritative Review Matrix may contain `payload.agentic
 
 `RookActionBinding` is the spike-owned, transport-neutral seam between a Speckle action target and one Grasshopper control. The stable `grasshopper_component_instance_id` must come from Grasshopper instance identity, never a label, position, list index, nickname, or role. For this POC, `source_canvas_id` is the canonical string form of the producer-observed Grasshopper `GH_Document.DocumentID`; a reopened definition with a different document ID requires a new snapshot and review. The binding is restricted to `control_type: GH_NumberSlider`, `input_or_parameter_id: value`, and the strict operation literal `gh_compare_and_set_value`.
 
-`gh_compare_and_set_value` is a required POC Rook capability, not a claim about the currently inspected Rook runtime. In one Rhino/Grasshopper UI-thread operation it must require the reviewed document ID and component `InstanceGuid`, find exactly one `GH_NumberSlider`, compare its current decimal value with the reviewed `before` value, and set only its value to `proposed_after` when the comparison succeeds. Its request contains exactly the document ID, component instance GUID, literal parameter `value`, expected value, proposed value, and authorization key; it accepts no nickname, minimum, maximum, additional edit arrays, or alternate control type. It returns those identities and the observed before/after values in a receipt. This mutation-bound comparison closes the time-of-check/time-of-use window that an ordinary `gh_snapshot` followed by `gh_edit.set_values` cannot close. Gate 2 cannot begin until the installed Rook runtime supplies and verifies this narrow operation.
+`source_canvas_state_fingerprint` is produced by a required Rook capture operation when the reasoning snapshot is assembled. `rook_canonical_ghx_sha256_v1` means SHA-256 over Rook's code-owned canonical in-memory GHX serialization of the complete active `GH_Document` using the pinned Grasshopper runtime. The same serializer and runtime must be used at execution. Cosmetic state may be included and cause a conservative mismatch; selection, viewport zoom, and other state absent from GHX are outside the execution state. Gate 1 must prove that object addition/removal, wiring, persistent control values, script source, and component/pin configuration change the fingerprint. An unknown algorithm or runtime-version mismatch refuses preflight.
 
-The reviewed binding is schema-valid only when its source canvas equals the Review Matrix `canvas_id`; its target application ID and parameter key exactly equal the candidate fields; its expected pre-action value exactly equals `before`; and its provenance version is the reviewed immutable binding revision. A missing, duplicate, malformed, or cross-field-mismatched reviewed binding is a preflight refusal. Immediately before invoking Rook, the executor re-reads version A and verifies the reviewed source-version identity and target. After permit creation and invocation, the mutation-bound Rook operation validates the live document, control identity, type, parameter, and exact decimal equality with `before` before writing. A live missing, stale, or ambiguous target or `before` mismatch performs no mutation but is a failed authorized attempt: it creates `AgenticChangeRecord.outcome: failed` and cannot be retried. No tolerance or implicit conversion is used for this freshness check.
+`gh_compare_and_set_value` is a required POC Rook capability, not a claim about the currently inspected Rook runtime. In one Rhino/Grasshopper UI-thread operation it must require the reviewed document ID, source-state fingerprint, and component `InstanceGuid`; recompute and compare the complete document fingerprint before any write; find exactly one `GH_NumberSlider`; compare its current decimal value with the reviewed `before` value; and set only its value to `proposed_after` when every guard succeeds. Its request contains exactly the document ID, fingerprint algorithm and SHA-256, component instance GUID, literal parameter `value`, expected value, proposed value, and authorization key; it accepts no nickname, minimum, maximum, additional edit arrays, or alternate control type. It returns those identities, the recomputed fingerprint, and the observed before/after values in a receipt. These mutation-bound guards close the time-of-check/time-of-use windows that an ordinary `gh_snapshot` followed by `gh_edit.set_values` cannot close. Gate 2 cannot begin until the installed Rook runtime supplies and verifies the capture and compare-and-set operations.
+
+The reviewed binding is schema-valid only when its source canvas equals the Review Matrix `canvas_id`; its source-state fingerprint uses the supported algorithm and a 64-character lowercase hexadecimal SHA-256; its target application ID and parameter key exactly equal the candidate fields; its expected pre-action value exactly equals `before`; and its provenance version is the reviewed immutable binding revision. A missing, duplicate, malformed, unknown-algorithm, runtime-mismatched, or cross-field-mismatched reviewed binding is a preflight refusal. Immediately before invoking Rook, the executor re-reads version A and verifies the reviewed source-version identity and target. After permit creation and invocation, the mutation-bound Rook operation validates the live document fingerprint, control identity, type, parameter, and exact decimal equality with `before` before writing. A live document-state, target, or `before` mismatch performs no mutation but is a failed authorized attempt: it creates `AgenticChangeRecord.outcome: failed` and cannot be retried. No tolerance or implicit conversion is used for this freshness check.
 
 ### One-use authorization and retry policy
 
@@ -297,6 +316,9 @@ AgenticChangeRecord
 │       ├── schema_version
 │       ├── binding_id
 │       ├── source_canvas_id
+│       ├── source_canvas_state_fingerprint
+│       │   ├── algorithm
+│       │   └── sha256
 │       ├── grasshopper_component_instance_id
 │       ├── control_type
 │       ├── input_or_parameter_id
@@ -340,7 +362,7 @@ The required POC acceptance sequence is:
 3. Chirp's reviewed packet contains the exact action candidate.
 4. The Riff Review Matrix is complete and every node is accepted.
 5. The raw matrix sidecar is written, read back, and cryptographically verified.
-6. Version A and the reviewed `RookActionBinding` are revalidated immediately before action; the live `before` value is enforced atomically by the Rook mutation.
+6. Version A and the reviewed `RookActionBinding` are revalidated immediately before action; the complete live canvas fingerprint and `before` value are enforced atomically by the Rook mutation.
 7. One authorization key is atomically reserved and cannot be replayed.
 8. Rook atomically compares and changes exactly one allowlisted slider value through the resolved binding.
 9. A distinct version B is published.
@@ -356,7 +378,7 @@ Required negative demonstrations are:
 - zero or multiple action candidates block execution;
 - an action-candidate mismatch blocks execution;
 - a source-version mismatch or invalid reviewed binding refuses before permit creation;
-- a live document, target, type, parameter, or `before` mismatch performs no mutation but produces a failed post-invocation record;
+- a live document ID, whole-document fingerprint, target, type, parameter, or `before` mismatch performs no mutation but produces a failed post-invocation record;
 - a consumed authorization key or a second permit for the same reviewed candidate blocks execution;
 - a missing, incomplete, or modified Review Matrix blocks execution;
 - unstable or missing target identity fails verification;
@@ -575,7 +597,7 @@ The documentation work is acceptable only when:
 - the POC authority and professional-liability boundaries are explicit;
 - the current Riff contract is described accurately and remains unchanged;
 - the authorizing node is selected uniquely and cannot be overridden by the executor;
-- the reviewed source version, `before`, and complete `RookActionBinding` are copied; source and binding are freshly revalidated and the live value is compared atomically with mutation;
+- the reviewed source version, whole-document fingerprint, `before`, and complete `RookActionBinding` are copied; static source/binding checks occur before permit creation and all live guards are compared atomically with mutation;
 - invalid reviewed bindings refuse preflight, while live identity/value mismatches fail safely after invocation; neither path falls back to labels, positions, or indexes;
 - one authorization can permit at most one possible attempt, and retry after failure or uncertainty requires a new snapshot and review;
 - preflight refusal is distinguished from a failed authorized attempt;
