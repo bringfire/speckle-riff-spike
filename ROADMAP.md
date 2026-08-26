@@ -17,6 +17,7 @@ The POC uses released public Speckle capabilities, one bounded architectural par
 - unrestricted Grasshopper modification;
 - a generalized Speckle connector replacement;
 - production persistence or deployment infrastructure;
+- an Enterprise workspace or Speckle Automate dependency;
 - backwards compatibility across Speckle generations;
 - a Riff geometry or BIM data store;
 - Speckle-specific changes to Riff's Review Matrix;
@@ -81,6 +82,7 @@ Host operating-system observation collected on 2026-08-25: `Microsoft Windows NT
 | released Speckle Rhino/Grasshopper connector | `not_recorded` | `not_recorded` | installed connector capture not yet performed | 2026-08-25 | released connector and repository source must not be equated |
 | current Speckle API or SDK client | `not_recorded` | `not_recorded` | client environment capture not yet performed | 2026-08-25 | released-path retrieval client is unpinned |
 | accessible released Speckle service deployment when observable | `not_recorded` | `not_recorded` | no accessible deployment/version observed | 2026-08-25 | service identity is not observable in this collection |
+| POC trigger and orchestration path | `not_recorded` | `not_recorded` | execution-path capture not yet performed | 2026-08-26 | record direct orchestration, polling, or standard webhook use; Speckle Automate is excluded from the POC dependency chain |
 | Python | installed runtime `3.13.5` | `Python 3.13.5` | `python --version` | 2026-08-25 | observed |
 | operating system | host runtime | `Microsoft Windows NT 10.0.26200.0` | host OS-version observation | 2026-08-25 | observed |
 | `speckle-sharp-sdk` | `big-truck` source pin | `f87d39cff9f54aff6c30b634780c834ba070ff4e` | approved Delta source ledger | 2026-08-24 | research source only; see `BT-OBS-001` through `BT-OBS-007` |
@@ -102,6 +104,7 @@ The checked-in [Big Truck Agentic Delta](docs/big-truck-agentic-delta.md), the a
 - Verify every research-source SHA.
 - Record source contradictions using the Delta precedence rule: executable code and tests at the pinned SHA, then current handoff documents, then planning documents, then interpretation or hypothesis.
 - Complete the runtime ledger for every dependency used in the POC.
+- Record whether the POC run uses direct orchestration, polling, or a standard server webhook, and verify that it does not depend on Speckle Automate or an Enterprise workspace.
 - Verify the current Riff ReviewMatrix, ReviewPacket, and decision semantics against the design.
 - Stop on unexplained dirty source trees or an installed/source mismatch that affects reproducibility.
 
@@ -216,7 +219,7 @@ Stop for a schema-invalid fixture, ambiguous candidate, invalid reviewed binding
 
 ### Dependencies
 
-Completed Gates 0 and 1; an accessible released Speckle service or self-hosted equivalent; the released connector; the civic-canopy definition; Karamba; Riff/Chirp; the external main agent; and Rook.
+Completed Gates 0 and 1; an accessible released or self-hosted Speckle service supporting the ordinary model/version APIs used by the POC; the released connector; the civic-canopy definition; Karamba; Riff/Chirp; the external main agent; and Rook. Speckle Automate and an Enterprise workspace are not required.
 
 ### Work
 

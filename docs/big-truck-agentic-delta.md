@@ -26,7 +26,9 @@ This is an independent, unofficial integration research project. It is not autho
 
 ## The Demonstration
 
-The self-sufficient proof of concept uses released Speckle capabilities for a civic-canopy architectural study. Karamba provides preliminary deterministic evidence; it does not approve structural work or direct the change. Chirp interprets the bounded evidence and proposes one exact candidate. A human may authorize that architectural exploration, but that decision is not professional engineering approval.
+The self-sufficient proof of concept uses released Speckle capabilities for a civic-canopy architectural study. It does not require an Enterprise workspace or [Speckle Automate](https://docs.speckle.systems/developers/automate/frequently-asked-questions). Riff and the spike run externally and use ordinary released model/version APIs, connector operations, and direct orchestration, polling, or standard server webhooks where available. Speckle Automate is a possible future deployment adapter, not part of Riff's core architecture or the POC dependency chain; Riff's reasoning, review, authorization, execution, and verification contracts remain transport-independent.
+
+Karamba provides preliminary deterministic evidence; it does not approve structural work or direct the change. Chirp interprets the bounded evidence and proposes one exact candidate. A human may authorize that architectural exploration, but that decision is not professional engineering approval.
 
 ```text
 Speckle version A

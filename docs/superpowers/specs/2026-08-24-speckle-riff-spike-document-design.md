@@ -78,7 +78,7 @@ Agents do not supersede engineering judgment or deterministic analysis. Karamba 
 
 ## 4. Self-Sufficient POC
 
-The POC uses publicly available released Speckle capabilities. It completes without private Speckle access, unreleased Big Truck access, or Speckle collaboration.
+The POC uses publicly available released Speckle capabilities. It completes without private Speckle access, unreleased Big Truck access, Speckle collaboration, an Enterprise workspace, or Speckle Automate. Riff and the spike run as external processes against ordinary released APIs and connector operations; direct orchestration, polling, or standard server webhooks may trigger work without changing the transport-neutral reasoning and authorization contracts. Speckle Automate may be evaluated later as an optional deployment adapter, but it is not part of Riff's core architecture or the POC dependency chain.
 
 The target workflow is:
 
